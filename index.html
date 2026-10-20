@@ -188,6 +188,14 @@ section{padding-block:clamp(64px,9vw,120px)}
 .code .p{color:var(--faint);user-select:none;-webkit-user-select:none}
 p code,li code,td code,summary code{font-size:.875em;background:var(--panel);box-shadow:0 0 0 1px var(--hair) inset;padding:.08em .38em;border-radius:5px;white-space:nowrap}
 
+/* Terminal dashboard frame: stays dark in both colour schemes, like a terminal */
+.term{margin:28px 0 0;width:fit-content;max-width:100%;border-radius:14px;background:#0d1014;box-shadow:0 0 0 1px rgb(255 255 255 / .09) inset,0 30px 60px -30px rgb(0 0 0 / .55);overflow:hidden}
+.term-bar{display:flex;align-items:center;gap:7px;height:34px;padding:0 14px;background:#161a1f;box-shadow:0 1px 0 rgb(255 255 255 / .06);color:#8a8f96;font:600 12px system-ui,-apple-system,sans-serif}
+.term-bar i{width:11px;height:11px;border-radius:50%;background:#3a3f45}
+.term-bar span{margin-left:8px}
+.term-body{margin:0;padding:14px 16px 16px;overflow-x:auto;color:#d7d6d1;font:12px/1.22 ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;scrollbar-width:thin}
+.term-cap{margin-top:12px;color:var(--faint);font-size:.875rem;max-width:760px;text-wrap:pretty}
+
 /* Cache band */
 .band{background:var(--panel);box-shadow:0 1px 0 var(--hair) inset,0 -1px 0 var(--hair) inset}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:8px}
@@ -451,6 +459,41 @@ footer .wrap{display:grid;gap:18px}
 <span class="p">$ </span>tcr run --codex    <span class="c"># codex</span></pre>
       </li>
     </ol>
+    <figure class="term" role="img" aria-label="The tcr terminal dashboard from tcr demo: six Claude and three Codex accounts with their five-hour and weekly windows and status, a session tree, and the recent request log.">
+      <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>tcr demo</span></div>
+      <pre class="term-body" aria-hidden="true"><span style="color:#66d081;font-weight:700">CLAUDE 3/6 eligible</span><span style="opacity:.6"> │ </span><span style="color:#66d081;font-weight:700">CODEX 2/3 eligible</span>
+┌ tcr · accounts · claude (6) ───────────────────────────────────────────────────────────────────────────────────────┐
+│<span style="font-weight:700">Account            Pri Status    Gate            5h   7d        Fable Reqs   In       Out      Last                 </span>│
+│  alice<span style="opacity:.6"> Max 20x</span>    0   <span style="color:#66d081">active   </span> <span style="color:#8a8f96;opacity:.6">OK             </span>  45%  20%      —     1200   4.2M     310.0k   6s                   │
+│  bob<span style="opacity:.6"> Max 20x</span>      0   <span style="color:#66d081">active   </span> <span style="color:#8a8f96;opacity:.6">OK             </span>  12%   8%      —     340    1.1M     88.0k    2m                   │
+│  carol<span style="opacity:.6"> Max 20x</span>    0   <span style="color:#66d081">active   </span> <span style="color:#ea5a56">5H 2h59m       </span>  88% <span style="color:#ffd16b"> 76% near</span> —     2100   7.8M     540.0k   1h                   │
+│▶ team-prod<span style="opacity:.6"> Team 5</span> 0   <span style="color:#66d081">active   </span> <span style="color:#8a8f96;opacity:.6">OK             </span>  30%  15%      —     890    2.6M     190.0k   4s                   │
+│  dave<span style="opacity:.6"> Max 20x</span>     10  <span style="color:#ffd16b">throttled</span> <span style="color:#ea5a56">5H 2h59m       </span> 100% <span style="color:#ea5a56"> 40% full</span> —     60     300.0k   22.0k    12m                  │
+│  backup<span style="opacity:.6"> Max 5x</span>    10  <span style="color:#ea5a56">error    </span> <span style="color:#ea5a56;font-weight:700">LOGIN          </span> —    —         —     0      0        0        —                    │
+├ codex (3) ─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│▶ bob@e…/codex<span style="opacity:.6"> Pro</span> 0   <span style="color:#66d081">active   </span> <span style="color:#8a8f96;opacity:.6">OK             </span> <span style="opacity:.6">none</span>  34%            140    2.9M     120.0k   4s                   │
+│  dana@examp…<span style="opacity:.6"> Plus</span> 0   <span style="color:#66d081">active   </span> <span style="color:#8a8f96;opacity:.6">OK             </span>  18%  25%            0      0        0        —                    │
+│  carol@examp…<span style="opacity:.6"> Pro</span> 0   <span style="color:#66d081">active   </span> <span style="color:#ea5a56">7D 3d          </span> <span style="opacity:.6">none</span> <span style="color:#ea5a56">100% full</span>       0      0        0        —                    │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌ sessions ──────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│<span style="font-weight:700">Session                      Reqs   Last                                                                            </span>│
+│<span style="color:#6cc6dd;font-weight:700">▾ alice · 1                  12     6s                                                                              </span>│
+│    00b2c7                   12     6s                                                                              │
+│<span style="color:#6cc6dd;font-weight:700">▾ bob@exa…/codex · 1</span><span style="color:#6cc6dd;opacity:.6"> codex</span><span style="color:#6cc6dd;font-weight:700">   7      4s                                                                              </span>│
+│    00c0de                   7      4s                                                                              │
+│<span style="color:#6cc6dd;font-weight:700">▾ team-prod · 1              24     4s                                                                              </span>│
+│    00a1f3                   24     4s                                                                              │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌ recent · q quit · ↑↓/jk select · d/e disable/enable · r redraw ────────────────────────────────────────────────────┐
+│<span style="color:#66d081">200 </span>POST   …/codex/responses        <span style="color:#6cc6dd">bob@example.com/codex</span>  4s ago                                                   │
+│<span style="color:#66d081">200 </span>POST   /v1/messages             <span style="color:#6cc6dd">team-prod</span>  4s ago                                                               │
+│<span style="color:#66d081">200 </span>POST   /v1/messages             <span style="color:#6cc6dd">alice</span>  6s ago                                                                   │
+│<span style="color:#c69bdd">429 </span>POST   /v1/messages             <span style="color:#6cc6dd">dave</span>  33s ago                                                                   │
+│<span style="color:#66d081">200 </span>POST   /v1/messages             <span style="color:#6cc6dd">carol</span>  2m ago                                                                   │
+│<span style="color:#66d081">200 </span>GET    /v1/models               <span style="color:#6cc6dd">bob</span>  5m ago                                                                     │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘</pre>
+    </figure>
+    <p class="term-cap">What step 2 opens: the terminal dashboard, with every account's windows and why it is out, the session tree and the request log. It runs on macOS and Linux. This frame is <code>tcr demo</code>, which draws the real dashboard against fake accounts and contacts nothing.</p>
   </div>
 </section>
 
