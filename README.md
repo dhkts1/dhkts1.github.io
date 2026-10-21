@@ -15,8 +15,10 @@ Scrolling is watched with IntersectionObserver, not GSAP's ScrollTrigger, which 
 frame loop running for as long as it is enabled. The two loops that run on their own (the hero
 panel's requests and the closing mark) stop after about twenty seconds without pointer activity.
 
-The Download buttons link to the release page, and a script in `index.html` points them straight at
-the newest `TcrBar-<version>.dmg` by asking the GitHub API for the latest release.
+The Download buttons link to `https://github.com/dhkts1/tcr/releases/latest/download/TcrBar.dmg`.
+Every tcr release carries its DMG under that fixed name as well as `TcrBar-<version>.dmg`
+(`apps/macos/scripts/release-tcrbar.sh` in tcr), so the link always fetches the newest one, with no
+script and no API call.
 
 Every factual claim on the page comes from tcr's own `README.md`, `docs/` and `LICENSE`; change the
 page when those change. The panel in the hero is an illustration with example accounts, drawn from

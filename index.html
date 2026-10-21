@@ -297,8 +297,6 @@ tr.us td.cost b{color:var(--ok)}
 .end .cmd{width:100%;max-width:880px;text-align:left}
 .end .cta-row{justify-content:center}
 .dl-meta{margin-top:10px;color:var(--faint);font-size:.8125rem;line-height:1.5;font-variant-numeric:tabular-nums}
-/* The version and size arrive from GitHub after load and can take a second line on a phone */
-@media (max-width:560px){.dl-meta{min-height:3em}}
 
 footer{border-top:1px solid var(--hair);padding:36px 0 48px;color:var(--faint);font-size:.875rem}
 footer .wrap{display:grid;gap:18px}
@@ -452,13 +450,13 @@ tbody th,tbody td{transition:background-color .12s ease}
       <h1 id="hero-title">Run Claude Code and Codex across multiple accounts</h1>
       <p class="lead">tcr is a local proxy for Claude Code and Codex. It sends each request to the account with quota left, and keeps every conversation on the account that already holds its prompt cache. TcrBar, a menu-bar app for macOS, shows every account.</p>
       <div class="cta-row">
-        <a class="btn btn-primary" data-dmg href="https://github.com/dhkts1/tcr/releases/latest">
+        <a class="btn btn-primary" href="https://github.com/dhkts1/tcr/releases/latest/download/TcrBar.dmg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
           Download for macOS
         </a>
         <a class="btn btn-ghost" href="#how">How it works</a>
       </div>
-      <p class="dl-meta" data-dmg-meta>A .dmg, signed and notarized by Apple</p>
+      <p class="dl-meta">The newest TcrBar, a .dmg signed and notarized by Apple</p>
       <div class="cmd">
         <p class="cmd-label" id="install-label">Or install from the terminal, on macOS or Linux</p>
         <div class="cmd-box">
@@ -841,13 +839,13 @@ tbody th,tbody td{transition:background-color .12s ease}
     <h2 id="end-title">Download TcrBar</h2>
     <p class="lead">Open the .dmg, drag TcrBar to Applications, and add your accounts from its panel. Look for it at the top right of the screen.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" data-dmg href="https://github.com/dhkts1/tcr/releases/latest">
+      <a class="btn btn-primary" href="https://github.com/dhkts1/tcr/releases/latest/download/TcrBar.dmg">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
         Download for macOS
       </a>
       <a class="btn btn-ghost" href="https://github.com/dhkts1/tcr#readme">Read the docs</a>
     </div>
-    <p class="dl-meta" data-dmg-meta>A .dmg, signed and notarized by Apple</p>
+    <p class="dl-meta">The newest TcrBar, a .dmg signed and notarized by Apple</p>
     <div class="cmd">
       <p class="cmd-label" id="install2-label">Or install from the terminal, on macOS or Linux. The script installs the tcr CLI, and on a Mac also installs TcrBar and opens it.</p>
       <div class="cmd-box">
@@ -899,35 +897,6 @@ tbody th,tbody td{transition:background-color .12s ease}
       });
     });
   });
-})();
-/* Download buttons go straight to the newest TcrBar .dmg. Its file name carries the version, so
-   there is no fixed URL for it; ask GitHub which release is latest. Without script, or if GitHub
-   does not answer, each button keeps its plain link to the release page. */
-(function () {
-  var buttons = document.querySelectorAll('[data-dmg]');
-  var metas = document.querySelectorAll('[data-dmg-meta]');
-  if (!buttons.length || !window.fetch) return;
-  fetch('https://api.github.com/repos/dhkts1/tcr/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
-    .then(function (res) {
-      if (!res.ok) throw new Error('GitHub answered ' + res.status);
-      return res.json();
-    })
-    .then(function (release) {
-      var dmg = (release.assets || []).filter(function (a) { return /^TcrBar-[\d.]+\.dmg$/.test(a.name); })[0];
-      if (!dmg) throw new Error('release ' + release.tag_name + ' has no TcrBar .dmg');
-      var version = dmg.name.slice('TcrBar-'.length, -'.dmg'.length);
-      var mb = Math.round(dmg.size / 1e6);
-      buttons.forEach(function (b) {
-        b.href = dmg.browser_download_url;
-        b.setAttribute('aria-label', 'Download TcrBar ' + version + ' for macOS, a ' + mb + ' MB disk image');
-      });
-      metas.forEach(function (m) {
-        m.textContent = 'TcrBar ' + version + ' · ' + mb + ' MB .dmg · signed and notarized by Apple';
-      });
-    })
-    .catch(function (err) {
-      console.warn('tcr site: could not find the latest .dmg, so Download opens the release page: ' + err.message);
-    });
 })();
 </script>
 </body>
