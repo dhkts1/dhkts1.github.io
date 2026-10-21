@@ -82,8 +82,9 @@ section{padding-block:clamp(64px,9vw,120px)}
 @media (max-width:820px){.nav{display:none}.top-cta{margin-left:auto}}
 
 /* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:12px;font-weight:600;font-size:.9688rem;text-decoration:none;white-space:nowrap;transition:background-color .15s ease,box-shadow .15s ease,transform .1s ease-out;-webkit-tap-highlight-color:transparent}
-.btn:active{transform:scale(.96)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:12px;font-weight:600;font-size:.9688rem;text-decoration:none;white-space:nowrap;transition:background-color .15s ease,box-shadow .15s ease,scale .1s ease-out;-webkit-tap-highlight-color:transparent}
+/* `scale`, not `transform`: motion.js moves the hero and closing buttons with `transform` */
+.btn:active{scale:.96}
 .btn svg{width:18px;height:18px;flex:none}
 .btn-primary{background:var(--cta);color:var(--cta-ink);box-shadow:0 1px 0 rgb(255 255 255 / .25) inset,0 6px 20px -6px color-mix(in srgb,var(--cta) 60%,transparent)}
 .btn-primary:hover{background:var(--cta-hover)}
@@ -95,6 +96,9 @@ section{padding-block:clamp(64px,9vw,120px)}
 /* Hero */
 .hero{padding-block:clamp(40px,6vw,88px) clamp(24px,4vw,48px);position:relative;overflow:clip}
 .hero::before{content:"";position:absolute;inset:-20% -10% auto 30%;height:720px;background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none}
+.hero-glow{display:none;position:absolute;inset:-20% -10% auto 30%;height:720px;background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none}
+html.motion .hero-glow{display:block}
+html.motion .hero::before{display:none}
 .hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:clamp(32px,5vw,72px);align-items:center;position:relative}
 @media (max-width:960px){.hero .wrap{grid-template-columns:minmax(0,1fr)}}
 .hero h1{font-size:clamp(2.5rem,1.4rem + 4.2vw,4.25rem);line-height:1.02;letter-spacing:-.04em;font-weight:750}
@@ -235,7 +239,7 @@ p code,li code,td code,summary code{font-size:.875em;background:var(--panel);box
 .code6{font:700 1.25rem/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.12em;color:var(--ink);padding:8px 10px;border-radius:8px;background:var(--raised)}
 .files{display:grid;gap:6px;font:500 12.5px/1.2 ui-monospace,"SF Mono",Menlo,monospace}
 .files span{display:flex;align-items:center;gap:8px;color:var(--dim)}
-.files svg{width:14px;height:14px;color:var(--faint);flex:none}
+.files svg{width:14px;height:14px;color:var(--faint);flex:none;overflow:visible}
 .prov{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .prov div{border-radius:10px;background:var(--raised);padding:10px 12px}
 .prov b{display:block;font-size:13px}
@@ -292,6 +296,9 @@ tr.us td.cost b{color:var(--ok)}
 .end .lead{margin-top:14px;max-width:34em}
 .end .cmd{width:100%;max-width:880px;text-align:left}
 .end .cta-row{justify-content:center}
+.dl-meta{margin-top:10px;color:var(--faint);font-size:.8125rem;line-height:1.5;font-variant-numeric:tabular-nums}
+/* The version and size arrive from GitHub after load and can take a second line on a phone */
+@media (max-width:560px){.dl-meta{min-height:3em}}
 
 footer{border-top:1px solid var(--hair);padding:36px 0 48px;color:var(--faint);font-size:.875rem}
 footer .wrap{display:grid;gap:18px}
@@ -299,6 +306,80 @@ footer .wrap{display:grid;gap:18px}
 .flinks a{text-decoration:none;color:var(--dim)}
 .flinks a:hover{color:var(--ink)}
 .legal{max-width:760px;text-wrap:pretty}
+
+/* Motion. motion.js adds the moving parts on top of this page. With no script, or with reduced
+   motion asked for, nothing below changes what the page shows. */
+@property --so{syntax:"<number>";inherits:false;initial-value:0}
+@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+/* The hero waits for its entrance; the head script lifts this after 4 s if motion.js never runs */
+html.motion .hero h1,html.motion .hero .lead,html.motion .hero .cta-row,html.motion .hero .dl-meta,html.motion .hero .cmd,html.motion .hero .facts{opacity:0}
+.hero h1 .w{display:inline-block}
+.progress{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--ok),color-mix(in srgb,var(--ok) 35%,var(--link)));transform-origin:0 50%;transform:scaleX(0);pointer-events:none}
+.nav{position:relative;isolation:isolate}
+.nav-pill{position:absolute;left:0;top:0;width:0;height:0;border-radius:8px;background:var(--panel);box-shadow:0 0 0 1px var(--hair) inset;z-index:-1;opacity:0;visibility:hidden;pointer-events:none}
+.nav a.on{color:var(--ink)}
+.brand .mark{width:26px;height:26px;border-radius:7px;display:block}
+/* Primary button: a light sweep and the arrow dipping toward the download */
+.btn-primary{position:relative;overflow:hidden;isolation:isolate}
+.btn-primary::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 30%,rgb(255 255 255 / .34) 50%,transparent 70%);translate:-110% 0;pointer-events:none}
+.btn-primary svg{transition:translate .25s var(--ease)}
+@media (hover:hover){
+  .btn-primary:hover::after{translate:110% 0;transition:translate .75s var(--ease)}
+  .btn-primary:hover svg{translate:0 2px}
+}
+/* A request in flight, from the menu-bar item down to the account it was sent to */
+.req{position:absolute;left:0;top:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 22%,transparent),0 0 18px 2px color-mix(in srgb,var(--ok) 70%,transparent);pointer-events:none;opacity:0;visibility:hidden;z-index:2}
+/* Cards light up under the pointer; --mx/--my come from motion.js */
+.step,.stat,.tile,.chart{--mx:50%;--my:50%;background-image:radial-gradient(440px circle at var(--mx) var(--my),color-mix(in srgb,var(--ok) calc(var(--so) * 9%),transparent),transparent 70%);transition:--so .35s ease,translate .35s var(--ease),box-shadow .35s ease}
+@media (hover:hover){
+  .step:hover,.stat:hover,.tile:hover,.chart:hover{--so:1}
+  .tile:hover,.step:hover{translate:0 -3px;box-shadow:0 0 0 1px var(--hair2) inset,0 22px 44px -26px rgb(0 0 0 / .55)}
+}
+.vr{transition:box-shadow .35s ease,background-color .35s ease}
+.vr .r{transition:color .35s ease}
+.code6{transition:box-shadow .3s ease}
+.code6.match{box-shadow:0 0 0 1.5px var(--ok) inset}
+.num{display:inline-block}
+.code .ln{display:block;width:fit-content}
+.code .ln:empty::after{content:"\200b"}
+.term .tl{display:inline-block}
+/* Comparison rows answer the pointer */
+tbody th,tbody td{transition:background-color .12s ease}
+@media (hover:hover){
+  tbody tr:hover th,tbody tr:hover td{background:color-mix(in srgb,var(--raised) 55%,var(--card))}
+  tbody tr.us:hover th,tbody tr.us:hover td{background:color-mix(in srgb,var(--ok) 13%,var(--card))}
+}
+.faq details.closing summary::after{transform:translateY(-3px) rotate(45deg)}
+/* The d3 charts. The text rows stay in the page for screen readers once the chart is drawn. */
+.chart.drawn .crow{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.chart{position:relative}
+.chart.drawn figcaption{padding-right:36px}
+.chart figcaption .cap-t{color:inherit;font-weight:inherit;margin-left:0;min-width:0}
+.replay{position:absolute;top:15px;right:15px;width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--faint);cursor:pointer;transition:background-color .15s ease,color .15s ease,scale .1s ease-out}
+.replay svg{width:15px;height:15px}
+.replay:hover{background:var(--raised);color:var(--ink)}
+.replay:active{scale:.96}
+.d3c svg{display:block;overflow:visible;font-family:inherit}
+.d3c text{font-size:13.5px;fill:var(--dim);font-variant-numeric:tabular-nums}
+.d3c .r.us .nm,.d3c .r.us .val{fill:var(--ink);font-weight:650}
+.d3c .trk{fill:var(--track)}
+.d3c .bar{fill:var(--hair2)}
+.d3c .r.us .bar{fill:var(--ok)}
+.d3c .grid{stroke:var(--hair);stroke-dasharray:2 4}
+.d3c .tick{fill:var(--faint);font-size:11px}
+.d3c .hit{fill:transparent}
+.d3c .r{transition:opacity .15s ease}
+.d3c .r.dim{opacity:.32}
+.cmp{min-height:1.4em;margin:0;color:var(--faint);font-size:.8125rem;font-variant-numeric:tabular-nums}
+.cmp b{color:var(--ink);font-weight:650}
+/* Closing: a large live mark and a light running round the install command while it is on screen */
+.end-mark{width:64px;height:64px;margin-bottom:22px;border-radius:16px;box-shadow:0 0 0 1px var(--img-outline),0 22px 44px -18px color-mix(in srgb,var(--ok) 45%,transparent)}
+.end-mark svg{display:block;width:100%;height:100%}
+.end .cmd-box{position:relative}
+.end .cmd-box::before{content:"";position:absolute;inset:-1px;border-radius:13px;padding:1.5px;background:conic-gradient(from var(--ang),transparent 0 60%,var(--ok) 80%,transparent 92%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);pointer-events:none;opacity:0;transition:opacity .5s ease}
+.end.live .cmd-box::before{opacity:1;animation:orbit 4s linear infinite}
+@keyframes orbit{to{--ang:360deg}}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
@@ -327,6 +408,14 @@ footer .wrap{display:grid;gap:18px}
   "image": "https://dhkts1.github.io/og.png"
 }
 </script>
+<script>
+/* Motion is opt-in: only without a reduced-motion request, and only if motion.js arrives within 4 s */
+(function(d){d.classList.toggle('motion',matchMedia('(prefers-reduced-motion: no-preference)').matches);setTimeout(function(){if(!window.__motion)d.classList.remove('motion')},4000)})(document.documentElement);
+</script>
+<script src="vendor/gsap.min.js" defer></script>
+<script src="vendor/ScrollTrigger.min.js" defer></script>
+<script src="vendor/Flip.min.js" defer></script>
+<script src="motion.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -348,6 +437,7 @@ footer .wrap{display:grid;gap:18px}
       </a>
     </div>
   </div>
+  <div class="progress" aria-hidden="true"></div>
 </header>
 
 <main id="main">
@@ -357,12 +447,13 @@ footer .wrap{display:grid;gap:18px}
       <h1 id="hero-title">Run Claude Code and Codex across multiple accounts</h1>
       <p class="lead">tcr is a local proxy for Claude Code and Codex. It sends each request to the account with quota left, and keeps every conversation on the account that already holds its prompt cache. TcrBar, a menu-bar app for macOS, shows every account.</p>
       <div class="cta-row">
-        <a class="btn btn-primary" href="https://github.com/dhkts1/tcr/releases/latest">
+        <a class="btn btn-primary" data-dmg href="https://github.com/dhkts1/tcr/releases/latest">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
           Download for macOS
         </a>
         <a class="btn btn-ghost" href="#how">How it works</a>
       </div>
+      <p class="dl-meta" data-dmg-meta>A .dmg, signed and notarized by Apple</p>
       <div class="cmd">
         <p class="cmd-label" id="install-label">Or install from the terminal, on macOS or Linux</p>
         <div class="cmd-box">
@@ -742,9 +833,18 @@ footer .wrap{display:grid;gap:18px}
 
 <section class="end band" aria-labelledby="end-title">
   <div class="wrap">
-    <h2 id="end-title">Install it in one line</h2>
-    <p class="lead">The script installs the tcr CLI, and on a Mac also installs TcrBar and opens it. Look for it at the top right of the screen.</p>
+    <h2 id="end-title">Download TcrBar</h2>
+    <p class="lead">Open the .dmg, drag TcrBar to Applications, and add your accounts from its panel. Look for it at the top right of the screen.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" data-dmg href="https://github.com/dhkts1/tcr/releases/latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download for macOS
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/dhkts1/tcr#readme">Read the docs</a>
+    </div>
+    <p class="dl-meta" data-dmg-meta>A .dmg, signed and notarized by Apple</p>
     <div class="cmd">
+      <p class="cmd-label" id="install2-label">Or install from the terminal, on macOS or Linux. The script installs the tcr CLI, and on a Mac also installs TcrBar and opens it.</p>
       <div class="cmd-box">
         <pre aria-label="Install command"><span class="p">$ </span><code id="install2">curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/dhkts1/tcr/main/install.sh | sh</code></pre>
         <button class="copy" type="button" data-copy="install2" aria-label="Copy the install command">
@@ -752,13 +852,6 @@ footer .wrap{display:grid;gap:18px}
           <svg class="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
         </button>
       </div>
-    </div>
-    <div class="cta-row">
-      <a class="btn btn-primary" href="https://github.com/dhkts1/tcr/releases/latest">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-        Download for macOS
-      </a>
-      <a class="btn btn-ghost" href="https://github.com/dhkts1/tcr#readme">Read the docs</a>
     </div>
   </div>
 </section>
@@ -801,6 +894,35 @@ footer .wrap{display:grid;gap:18px}
       });
     });
   });
+})();
+/* Download buttons go straight to the newest TcrBar .dmg. Its file name carries the version, so
+   there is no fixed URL for it; ask GitHub which release is latest. Without script, or if GitHub
+   does not answer, each button keeps its plain link to the release page. */
+(function () {
+  var buttons = document.querySelectorAll('[data-dmg]');
+  var metas = document.querySelectorAll('[data-dmg-meta]');
+  if (!buttons.length || !window.fetch) return;
+  fetch('https://api.github.com/repos/dhkts1/tcr/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(function (res) {
+      if (!res.ok) throw new Error('GitHub answered ' + res.status);
+      return res.json();
+    })
+    .then(function (release) {
+      var dmg = (release.assets || []).filter(function (a) { return /^TcrBar-[\d.]+\.dmg$/.test(a.name); })[0];
+      if (!dmg) throw new Error('release ' + release.tag_name + ' has no TcrBar .dmg');
+      var version = dmg.name.slice('TcrBar-'.length, -'.dmg'.length);
+      var mb = Math.round(dmg.size / 1e6);
+      buttons.forEach(function (b) {
+        b.href = dmg.browser_download_url;
+        b.setAttribute('aria-label', 'Download TcrBar ' + version + ' for macOS, a ' + mb + ' MB disk image');
+      });
+      metas.forEach(function (m) {
+        m.textContent = 'TcrBar ' + version + ' · ' + mb + ' MB .dmg · signed and notarized by Apple';
+      });
+    })
+    .catch(function (err) {
+      console.warn('tcr site: could not find the latest .dmg, so Download opens the release page: ' + err.message);
+    });
 })();
 </script>
 </body>
