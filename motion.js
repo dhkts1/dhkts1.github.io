@@ -1,6 +1,6 @@
 /* Motion for dhkts1.github.io.
  *
- * GSAP, ScrollTrigger and Flip (vendor/, GSAP 3.15.0) move the page; d3 (vendor/, 7.9.0) draws the
+ * GSAP and Flip (vendor/, GSAP 3.15.0) move the page; d3 (vendor/, 7.9.0) draws the
  * four performance charts and is fetched only when they come near the viewport.
  *
  * The page does not depend on this file. With no script it is the static page; with reduced motion
@@ -27,15 +27,16 @@
   var ROW = 32, TOP = 2, AXIS = 22;
   charts();
 
-  if (!window.gsap || !window.ScrollTrigger || !window.Flip) {
+  if (!window.gsap || !window.Flip) {
     console.warn('tcr site: GSAP did not load, so the page stays static');
     root.classList.remove('motion');
     return;
   }
-  gsap.registerPlugin(ScrollTrigger, Flip);
-  // The head script lifts the hero's hidden state after 4 s; if that already happened, skip the entrance.
-  var heroWaiting = root.classList.contains('motion');
-  window.__motion = true;
+  // No ScrollTrigger: it keeps a requestAnimationFrame loop alive for as long as it is enabled
+  // (_rafBugFix in its source), a measured 2% of a core on a page where nothing moves. Scrolling
+  // is watched with IntersectionObserver and one passive scroll listener instead, so GSAP's own
+  // ticker sleeps whenever nothing animates.
+  gsap.registerPlugin(Flip);
 
   /* ------------------------------------------------------------------------------------------
    * The mark: eight rays round the proxy, each ray one account and its length the quota left.
@@ -83,22 +84,6 @@
    * DOM preparation, once. Splitting text keeps every character in place, so the page reads and
    * copies the same; only the animations below use the new spans.
    * ---------------------------------------------------------------------------------------- */
-  var h1 = $('.hero h1');
-  if (h1 && !h1.dataset.split) {
-    h1.dataset.split = '1';
-    var words = h1.textContent.trim().split(/\s+/);
-    // One name for screen readers; the word spans exist only to move.
-    h1.setAttribute('aria-label', words.join(' '));
-    h1.textContent = '';
-    words.forEach(function (w, i) {
-      var s = document.createElement('span');
-      s.className = 'w';
-      s.setAttribute('aria-hidden', 'true');
-      s.textContent = w;
-      h1.appendChild(s);
-      if (i < words.length - 1) h1.appendChild(document.createTextNode(' '));
-    });
-  }
   function splitLines(pre, cls, joiner) {
     if (pre.dataset.split) return;
     pre.dataset.split = '1';
@@ -176,7 +161,7 @@
 
   /* ------------------------------------------------------------------------------------------
    * The moving page, set up only while reduced motion is not asked for. matchMedia reverts every
-   * tween and ScrollTrigger made here if that changes; the cleanup puts the DOM swaps back.
+   * tween made here if that changes; the cleanup disconnects the observers and puts the DOM back.
    * ---------------------------------------------------------------------------------------- */
   var mm = gsap.matchMedia();
   mm.add({
@@ -200,6 +185,20 @@
     // cleanup runs every one, so turning on reduced motion mid-visit leaves the page as written.
     var restores = [];
 
+    var observers = [];
+    function observe(targets, opts, cb) {
+      var io = new IntersectionObserver(cb, opts);
+      [].concat(targets).forEach(function (t) { if (t) io.observe(t); });
+      observers.push(io);
+      return io;
+    }
+    // "Seen" means the element's top has crossed `line` of the way down the screen, or the element
+    // is above the screen. The root reaches 100000px above the viewport so that a jump straight
+    // past an element (a #faq link) still counts it as seen: IntersectionObserver never reports an
+    // element that was below the screen in one frame and above it in the next.
+    function seenMargin(line) { return '100000px 0px -' + Math.round((1 - line) * 100) + '% 0px'; }
+    function byPage(a, b) { return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1; }
+
     // Run `play` when `el` first scrolls into view. Only something below the screen is hidden
     // first: an element already on screen, or above it, is left exactly as it is, because hiding
     // what the reader can already see would be a flash.
@@ -207,22 +206,30 @@
       if (undo) restores.push(undo);
       if (!target || target.getBoundingClientRect().top <= vh) return;
       if (hide) hide();
-      ScrollTrigger.create({ trigger: target, start: 'top 86%', once: true, onEnter: play });
+      var io = observe(target, { rootMargin: seenMargin(0.86) }, function (entries) {
+        if (!entries[0].isIntersecting) return;
+        io.disconnect();
+        play();
+      });
     }
     function reveal(targets, y) {
       targets = targets.filter(function (t) { return t.getBoundingClientRect().top > vh; });
       if (!targets.length) return;
       gsap.set(targets, { opacity: 0, y: y });
-      ScrollTrigger.batch(targets, {
-        start: 'top 90%',
-        once: true,
-        onEnter: function (batch) {
-          gsap.to(batch, {
-            opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', stagger: 0.09, overwrite: true,
-            clearProps: 'transform,opacity,visibility'
-          });
-        }
+      var io = observe(targets, { rootMargin: seenMargin(0.9) }, function (entries) {
+        var batch = entries.filter(function (e) { return e.isIntersecting; }).map(function (e) { return e.target; });
+        if (!batch.length) return;
+        batch.forEach(function (t) { io.unobserve(t); });
+        gsap.to(batch.sort(byPage), {
+          opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', stagger: 0.09, overwrite: true,
+          clearProps: 'transform,opacity'
+        });
       });
+    }
+    // Calls `fn(true)` while any part of `el` is on screen and `fn(false)` once it is not.
+    function whileOnScreen(target, fn, margin) {
+      if (!target) return;
+      observe(target, { rootMargin: margin || '0px' }, function (entries) { fn(entries[entries.length - 1].isIntersecting); });
     }
     function countTo(n, duration, delay) {
       var o = { v: 0 };
@@ -232,24 +239,8 @@
       });
     }
 
-    /* --- Hero entrance ---------------------------------------------------------------------- */
-    var heroParts = ['.hero h1', '.hero .lead', '.hero .cta-row', '.hero .dl-meta', '.hero .cmd', '.hero .facts'];
-    if (heroWaiting) {
-      // Shown before the timeline is built, so each from() below hides its own target in the same
-      // frame. A set inside the timeline would show a part at full opacity until its own tween
-      // started, then blank it: a flash on every load. Opacity, never visibility, everywhere a
-      // reveal waits: hidden-by-visibility text drops out of screen readers and find-in-page.
-      gsap.set(heroParts, { opacity: 1 });
-      gsap.timeline({ defaults: { ease: 'power3.out', immediateRender: true } })
-        .from('.hero h1 .w', { opacity: 0, y: 22, filter: 'blur(8px)', duration: 0.85, stagger: 0.055, clearProps: 'filter' }, 0)
-        .from('.hero .lead', { opacity: 0, y: 14, duration: 0.7 }, 0.35)
-        .from('.hero .cta-row > *', { opacity: 0, y: 12, duration: 0.6, stagger: 0.08 }, 0.5)
-        .from('.hero .dl-meta', { opacity: 0, y: 8, duration: 0.5 }, 0.6)
-        .from('.hero .cmd', { opacity: 0, y: 12, duration: 0.6 }, 0.66)
-        .from('.hero .facts li', { opacity: 0, y: 8, duration: 0.5, stagger: 0.06 }, 0.72);
-    } else {
-      gsap.set(heroParts, { opacity: 1 });
-    }
+    // The hero's entrance is CSS (index.html, "rise"), so it starts at first paint and never waits
+    // for these scripts.
 
     /* --- The marks -------------------------------------------------------------------------- */
     gsap.fromTo(brand.state, { f: 0 }, {
@@ -272,12 +263,20 @@
       }, on);
     }
 
-    // The closing mark keeps working while it is on screen: a request lands on the hub, and one or
-    // two accounts' quota moves.
+    // Loops that run on their own (the hero's requests, the closing mark) get a budget of ticks.
+    // Spent, they stop, so a tab left open costs nothing; pointer activity over their section, or
+    // scrolling back to it, refills it.
+    var LOOP_BUDGET = 12;
+
+    // The closing mark keeps working while the install box is on screen: a request lands on the
+    // hub, and one or two accounts' quota moves.
     endMark.state.forEach(function (s, i) { s.f = HOME[i]; });
     endMark.paint();
-    var endTimer = null;
+    var endSection = $('.end');
+    var endTimer = null, endBudget = 0, endVisible = false;
     function endTick() {
+      endTimer = null;
+      if (endBudget-- <= 0) return;
       gsap.fromTo(endMark.hub, { attr: { r: 3.4 } }, { attr: { r: 2.3 }, duration: 0.6, ease: 'power2.out' });
       var picks = gsap.utils.shuffle([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, gsap.utils.random(1, 2, 1));
       picks.forEach(function (i) {
@@ -287,18 +286,38 @@
       });
       endTimer = gsap.delayedCall(gsap.utils.random(0.9, 1.6), endTick);
     }
-    // Keyed to the install box itself, so the orbit and the mark start only once it is in sight.
-    ScrollTrigger.create({
-      trigger: '.end .cmd-box', start: 'top 92%', endTrigger: '.end', end: 'bottom top',
-      toggleClass: { targets: '.end', className: 'live' },
-      onToggle: function (self) {
-        if (endTimer) { endTimer.kill(); endTimer = null; }
-        if (self.isActive) endTimer = gsap.delayedCall(0.4, endTick);
-      }
-    });
+    function endWake() {
+      endBudget = LOOP_BUDGET;
+      if (endVisible && !endTimer) endTimer = gsap.delayedCall(0.4, endTick);
+    }
+    whileOnScreen($('.end .cmd-box'), function (visible) {
+      endVisible = visible;
+      if (endSection) endSection.classList.toggle('live', visible);
+      if (endTimer) { endTimer.kill(); endTimer = null; }
+      if (visible) endWake();
+    }, '0px 0px -8% 0px');
+    if (endSection) endSection.addEventListener('pointermove', function () { if (endBudget < 3) endWake(); }, on);
+    restores.push(function () { if (endSection) endSection.classList.remove('live'); });
 
     /* --- Header: scroll progress and the section you are in --------------------------------- */
-    gsap.to('.progress', { scaleX: 1, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: 0.3 } });
+    var progress = $('.progress');
+    var progressQueued = false;
+    function paintProgress() {
+      progressQueued = false;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, window.scrollY / max) : 0).toFixed(4) + ')';
+    }
+    function queueProgress() {
+      if (progressQueued) return;
+      progressQueued = true;
+      requestAnimationFrame(paintProgress);
+    }
+    if (progress) {
+      window.addEventListener('scroll', queueProgress, { passive: true, signal: ac.signal });
+      window.addEventListener('resize', queueProgress, on);
+      paintProgress();
+      restores.push(function () { progress.style.transform = ''; });
+    }
     var links = nav ? $$('a', nav) : [];
     var current = null;
     function point(a) {
@@ -310,22 +329,24 @@
       gsap.to(pill, Object.assign({ autoAlpha: 1, duration: 0.45, ease: 'power3.out', overwrite: 'auto' }, place));
     }
     // A resize moves the links; put the pill back under the current one.
-    function repoint() { if (current) point(current); }
-    ScrollTrigger.addEventListener('refresh', repoint);
-    restores.push(function () {
-      ScrollTrigger.removeEventListener('refresh', repoint);
-      links.forEach(function (l) { l.classList.remove('on'); });
-    });
+    window.addEventListener('resize', function () { if (current) point(current); }, on);
+    restores.push(function () { links.forEach(function (l) { l.classList.remove('on'); }); });
+    // The section in view is the one crossing a line 45% of the way down the screen.
+    var sectionOf = new Map();
     links.forEach(function (a) {
       var section = document.querySelector(a.getAttribute('href'));
-      if (!section) return;
-      ScrollTrigger.create({
-        trigger: section, start: 'top 45%', end: 'bottom 45%',
-        onToggle: function (self) {
-          if (self.isActive) point(a);
-          else if (current === a) point(null);
-        }
+      if (section) sectionOf.set(section, a);
+    });
+    var crossing = new Set();
+    observe(Array.from(sectionOf.keys()), { rootMargin: '-45% 0px -54% 0px' }, function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) crossing.add(e.target);
+        else crossing.delete(e.target);
       });
+      var a = links.filter(function (l) {
+        return Array.from(crossing).some(function (s) { return sectionOf.get(s) === l; });
+      })[0] || null;
+      if (a !== current) point(a);
     });
 
     /* --- Hero: the panel at work -----------------------------------------------------------
@@ -345,7 +366,7 @@
       var home = parseFloat(bar.style.getPropertyValue('--u'));
       return { row: r, bar: bar, pc: $('.pc', r), dot: $('.dot', r), home: home, u: home };
     }) : [];
-    var heroTimer = null, clock = null, since = 0;
+    var heroTimer = null, clock = null, since = 0, heroBudget = 0, heroVisible = false;
 
     function setUse(a, u, duration) {
       a.u = u;
@@ -378,25 +399,38 @@
         .add(function () { land(a); })
         .to(req, { autoAlpha: 0, scale: 2.2, duration: 0.3, ease: 'power2.out' });
     }
+    function heroStop() {
+      if (heroTimer) { heroTimer.kill(); heroTimer = null; }
+      if (clock) { clock.kill(); clock = null; }
+    }
     function loop() {
+      heroTimer = null;
+      if (heroBudget-- <= 0) { heroStop(); return; } // the "updated" clock stops with it
       send();
       heroTimer = gsap.delayedCall(gsap.utils.random(1.3, 2.4), loop);
     }
-    function heroLive(live) {
-      if (heroTimer) { heroTimer.kill(); heroTimer = null; }
-      if (clock) { clock.kill(); clock = null; }
-      if (!live || !accounts.length || !mbItem) return;
-      heroTimer = gsap.delayedCall(heroWaiting ? 1.8 : 0.6, loop);
-      clock = gsap.delayedCall(1, function tickClock() {
+    function heroLive(first) {
+      heroBudget = LOOP_BUDGET;
+      if (!heroVisible || heroTimer || !accounts.length || !mbItem) return;
+      heroTimer = gsap.delayedCall(first ? 1.2 : 0.3, loop);
+      if (!clock) clock = gsap.delayedCall(1, function tickClock() {
         since += 1;
         if (stamp) stamp.textContent = 'updated ' + since + 's ago';
         clock = gsap.delayedCall(1, tickClock);
       });
     }
-    ScrollTrigger.create({
-      trigger: '.hero', start: 'top bottom', end: 'bottom top',
-      onToggle: function (self) { heroLive(self.isActive); }
+    var heroSeen = false;
+    whileOnScreen(heroBox, function (visible) {
+      heroVisible = visible;
+      if (!visible) { heroStop(); return; }
+      heroLive(!heroSeen);
+      heroSeen = true;
     });
+    if (heroBox) {
+      ['pointermove', 'pointerdown'].forEach(function (type) {
+        heroBox.addEventListener(type, function () { if (heroBudget < 3) heroLive(false); }, on);
+      });
+    }
 
     /* --- Pointer: the hero scene leans toward it, buttons pull toward it, cards light under it - */
     if (fine) {
@@ -671,7 +705,9 @@
     return function () {
       ac.abort();
       restores.forEach(function (undo) { undo(); });
-      heroLive(false);
+      observers.forEach(function (io) { io.disconnect(); });
+      heroVisible = false;
+      heroStop();
       if (endTimer) endTimer.kill();
       root.classList.remove('motion');
       if (brand.svg.isConnected && brandImg) brand.svg.replaceWith(brandImg);
